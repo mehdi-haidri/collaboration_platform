@@ -1,0 +1,35 @@
+spring:
+  application:
+    name: realTime_collaboration_platform
+
+  # Database Configuration for PostgreSQL
+  datasource:
+    url: jdbc:postgresql://localhost:5432/test
+    username: user
+    password: password
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create
+    show-sql: true
+    # Optional: HikariCP pool settings for better performance
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      idle-timeout: 30000
+      max-lifetime: 600000
+
+  # Optional: Customize WebSocket Buffer Size (if you have specific needs)
+  websocket:
+    buffer-size: 8192
+  data:
+    redis:
+      host: localhost
+      port: 6379
+server:
+  port:
+
+logging:
+  level:
+    root: INFO
+    com.project: DEBUG  # Set the logging level for your package
