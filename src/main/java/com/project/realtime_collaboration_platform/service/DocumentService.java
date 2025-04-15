@@ -54,7 +54,7 @@ public class DocumentService {
             // Document does not exist, save new document
             documentRepository.save(document);
         }
-        redisTemplate.delete(String.valueOf(document.getId()));
+        redisTemplate.delete("doc:" + document.getId() + ":ops");
     }
 
     public String getLastSave(Integer docId) {
@@ -62,7 +62,9 @@ public class DocumentService {
         return document.map(Document::getContent).orElse(null);
     }
 
-    // add saveToDatabase(...) to persist eventually
+    public  Document createDocument(Document document) {
+        return documentRepository.save(document);
+    }
 
 
 }

@@ -1,5 +1,6 @@
 package com.project.realtime_collaboration_platform.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.realtime_collaboration_platform.service.DocumentService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,6 +12,7 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -30,6 +32,8 @@ public class WebSocketHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws IOException {
         // Get doc ID from URL query
+        Map<String, Object> message = new HashMap<>();
+        ObjectMapper mapper = new ObjectMapper();
         String docId = getDocId(session);
         logger.info("Connection established for docId: {}", docId);  // Log message
 
@@ -37,11 +41,17 @@ public class WebSocketHandler extends TextWebSocketHandler {
         logger.info("sessions: {}", docSessions );
 
         String lastSave = documentService.getLastSave(Integer.parseInt(docId));
-        session.sendMessage(new TextMessage(lastSave));
-        List<String> chnages =  documentService.getAllOpsForDoc(docId);
+        if(lastSave != null) {
+            message.put("type", "lastSave");
+            message.put("lastSave", lastSave);
+            session.sendMessage(new TextMessage(mapper.writeValueAsString(message)));
+        }
 
+        List<String> chnages =  documentService.getAllOpsForDoc(docId);
                 for (var msg : chnages ){
-                session.sendMessage(new TextMessage(msg));
+                    message.put("type", "change");
+                    message.put("value", msg);
+                    session.sendMessage(new TextMessage(mapper.writeValueAsString(message)));
                 }
       /*  NotifyOthers(session,docId);*/
 
@@ -50,11 +60,15 @@ public class WebSocketHandler extends TextWebSocketHandler {
 
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
+        Map<String, Object> msg = new HashMap<>();
+        ObjectMapper mapper = new ObjectMapper();
+        msg.put("type", "change");
+        msg.put("value", message.getPayload());
         String docId = getDocId(session);
         documentService.applyOperation(docId, message.getPayload());
         for (WebSocketSession s : docSessions.get(docId)) {
             if (s.isOpen() && !s.getId().equals(session.getId())) {
-                s.sendMessage(message);
+                s.sendMessage(new TextMessage(mapper.writeValueAsString(msg)));
             }
         }
 
@@ -63,7 +77,7 @@ public class WebSocketHandler extends TextWebSocketHandler {
     protected void NotifyOthers(WebSocketSession session , String docId) throws IOException {
         for (WebSocketSession s : docSessions.get(docId)) {
             if (s.isOpen() && !s.getId().equals(session.getId())) {
-                s.sendMessage( new TextMessage("new user loged in "));
+                s.sendMessage(new TextMessage("new user loged in "));
             }
         }
     }
