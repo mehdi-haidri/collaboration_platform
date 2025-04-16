@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("/api/v1/documents")
 @RequiredArgsConstructor
@@ -27,9 +27,12 @@ public class DocumentController {
     @PostMapping("/saveDocs")
     public ResponseEntity<?> saveDoc ( @RequestBody Document document){
 
-        documentService.saveToDB(document);
 
-        return new ResponseEntity<>("saved", HttpStatus.OK);
+
+        documentService.saveToDB(document);
+        HashMap<String , Object> responseMap = new HashMap<>();
+        responseMap.put("error" , false);
+        return new ResponseEntity<>(responseMap, HttpStatus.OK);
     }
 
     @GetMapping("/create/{type}")
@@ -37,17 +40,15 @@ public class DocumentController {
         try{
             Document document = new Document();
             document.setType(type);
-            documentService.createDocument(document);
-
+            document =  documentService.createDocument(document);
             HashMap<String , Object> responseMap = new HashMap<>();
             responseMap.put("error" , false);
-            responseMap.put("value" , document);
-
+            responseMap.put("data" , document);
             return new ResponseEntity<>(responseMap, HttpStatus.OK);
         }catch (Exception ignored){
             HashMap<String , Object> responseMap = new HashMap<>();
-            responseMap.put("error" , false);
-            responseMap.put("value" , ignored);
+            responseMap.put("error" , true);
+            responseMap.put("message" , "something went wrong");
             return new ResponseEntity<>(responseMap, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }

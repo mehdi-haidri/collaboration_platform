@@ -61,12 +61,9 @@ temp.onopen = () => {
 
   }
 
-  const sendMessage = async (message) => {
+  const sendMessage = async (message ) => {
     
-  
-
       socket.send(message);
- 
   
   }
 

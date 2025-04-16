@@ -11,7 +11,7 @@ export default function Router() {
             element: <Dashboard />,
         },
         {
-            path: '/editor/:id',
+            path: '/Codeeditor/:id',
             element: <CodeEditor />,
         },
        

@@ -2,6 +2,7 @@ package com.project.realtime_collaboration_platform.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.realtime_collaboration_platform.service.DocumentService;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -19,15 +20,12 @@ import java.util.concurrent.ConcurrentHashMap;
 
 
 @Component
+@RequiredArgsConstructor
 public class WebSocketHandler extends TextWebSocketHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(WebSocketHandler.class);
     private final Map<String, List<WebSocketSession>> docSessions = new ConcurrentHashMap<>();
-    private DocumentService documentService;
-
-    public WebSocketHandler(DocumentService documentService) {
-        this.documentService = documentService;
-    }
+    private final DocumentService documentService;
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws IOException {
@@ -41,9 +39,9 @@ public class WebSocketHandler extends TextWebSocketHandler {
         logger.info("sessions: {}", docSessions );
 
         String lastSave = documentService.getLastSave(Integer.parseInt(docId));
-        if(lastSave != null) {
+        if(lastSave != null && !lastSave.isEmpty()) {
             message.put("type", "lastSave");
-            message.put("lastSave", lastSave);
+            message.put("value", lastSave);
             session.sendMessage(new TextMessage(mapper.writeValueAsString(message)));
         }
 
