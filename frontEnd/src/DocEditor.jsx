@@ -46,14 +46,13 @@ export default function DocEditor () {
   
   const testConnection = async () => {
     const temp = new WebSocket('ws://localhost:8080/ws/documents?docId='+docId);
-  setSocket(temp);
-temp.onopen = () => {
+    setSocket(temp);
+   temp.onopen = () => {
   console.log('WebSocket connected');
   
 };
 
     temp.onmessage = (event) => {
-   
       const editor = editorRef.current.getEditor();
       const data = JSON.parse(event.data);
       editor.updateContents(data.delta, 'api');
