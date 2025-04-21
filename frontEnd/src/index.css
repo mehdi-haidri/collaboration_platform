@@ -38,30 +38,11 @@ body {
   width: 100%;
   background-color: var(--main-color);
 }
-
 h1 {
   font-size: 3.2em;
   line-height: 1.1;
 }
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
 
 @media (prefers-color-scheme: light) {
   :root {
@@ -78,8 +59,8 @@ button:focus-visible {
 
 
 .page {
+  width: 10in;
   margin: 20px auto;
-
   box-sizing: border-box;
   background: white;
   box-shadow: 0 0 5px rgba(0,0,0,0.1);
@@ -95,8 +76,11 @@ button:focus-visible {
 color: black;
 background-color: white;
 width: 8.5in;
-min-height: 11in;
-padding: 1in;
+height: 1122px;
+  max-height: 1122px;
+  overflow: hidden;
+
+padding: 0.5in;
 margin: 1rem;
 box-shadow: 0 0 5px 0 rgba(0, 0, 0, 0.5);
 }
@@ -118,15 +102,16 @@ border: none;
 box-shadow: 0 0 5px 0 rgba(0, 0, 0, 0.5);
 }
 
-.page-break {
-  display: block;
-  width: 100%;
-  border-top: 2px dashed #aaa;
-  margin: 50px 0;
-  height: 0;
-  position: relative;
+.ql-formats{
+  margin-right: 10px !important;
+  width: fit-content !important;
+ font-weight: bold;
 }
-
+.ql-addPage{
+  width: fit-content !important;
+  color: black;
+  font-weight: bold;
+}
 
 /* targeting print media and removing all the styles */
 @media print {

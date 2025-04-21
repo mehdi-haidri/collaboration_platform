@@ -6,21 +6,9 @@ import javascript from "highlight.js/lib/languages/javascript";
 
 // import { io } from "socket.io-client";
 hljs.registerLanguage("javascript", javascript);
-
+const PAGE_HEIGHT = 1076;
 import Quill from "quill";
 import "quill/dist/quill.snow.css";
-
-
-// const BlockEmbed = Quill.import("blots/block/embed");
-
-// class PageBreak extends BlockEmbed {
-//   static blotName = "pageBreak";
-//   static tagName = "div";
-//   static className = "page-break";
-// }
-
-// Quill.register(PageBreak);
-
 
 
 const toolbarOptions = [
@@ -36,13 +24,12 @@ const toolbarOptions = [
   [{ align: [] }],
 
   ["image", "blockquote", "code-block" , "link"],
-  ["clean"] // remove formatting button
+  ["clean"]// remove formatting button
 ];
 
-const toolbarContainer = document.createElement("div");
-    toolbarContainer.id = "toolbar";
+
    
-    
+
 
 const TextEditor = () => {
   const [quill, setQuill] = useState([]);
@@ -114,21 +101,72 @@ const TextEditor = () => {
       
       
       // if user changes something on the editor, send it to the server
-      quill.forEach((q , i) => q.on("text-change", (delta, oldDelta, source) => sendUserChangesToServer(delta, oldDelta, source , i)));
       quill.forEach((q, i) => {
-        console.log('q', q);
-        
-        q.on('selection-change', (range) =>SetSelection(range , q))
-      })
-          console.log('quill');
+        q.on("text-change", (delta, oldDelta, source) => {
+          if(source === 'api') return
+          const range = q.getSelection();
+          console.log("inserted" , source);
+          if (range) {
+            const bounds = q.getBounds(range.index);
+            const position = bounds.top + bounds.height;
+              console.log(position);
+            if (position > PAGE_HEIGHT) {
+              const length = q.getLength();
+              q.deleteText(length - 2, 1);
+              let newQ;
+              if (i == quill.length - 1) {
+                 newQ = addPage()
+                q.blur()
+                setTimeout(() => {
+                  newQ.focus();
+                  newQ.setSelection(0, 0);
+                }, 50);
 
+              } else {
+                 newQ = quill[i + 1];
+                q.blur()
+                setTimeout(() => {
+                  newQ.focus();
+                  newQ.setSelection(0, 0);
+                }, 50);
+              }
+            }
+            
+          }
+
+          sendUserChangesToServer(delta, oldDelta, source, i)
+        })
+        q.on('selection-change', (range) => {
+         
+          SetSelection(range, q)
+        });
+        const toolbar = q.getModule('toolbar');
+        if (toolbar.container.querySelector('.ql-addPage')) return;
+        const ql_formats = document.createElement('span');
+        ql_formats.className = 'ql-formats ';
+        const AddPageButton = document.createElement("button");
+        AddPageButton.innerHTML = "➕Page";
+        AddPageButton.className = "ql-addPage";
+        AddPageButton.addEventListener("click", addPage);
+        ql_formats.appendChild(AddPageButton);
+        toolbar.container.appendChild(ql_formats);
+        
+
+      });
+    
+      console.log('quill');
+
+     
       // if some other user has made changes to the editor, update the current editor with the changes
     //   socket.on("receive-changes", updateEditor);
 
       // remove the event handler on unmount
       return () => {
-        quill.forEach(q => q.off("text-change", sendUserChangesToServer));
-        quill.forEach(q => q.off("selection-change"));
+        quill.forEach(q => {
+          q.off("text-change")
+          q.off("selection-change")
+        });
+     
         // socket.off("receive-changes", updateEditor);
       };
     },
@@ -172,7 +210,6 @@ const TextEditor = () => {
         });
         console.log('removed');
         if (!(visibleToolbars.length == 1)) {
-
           console.log(visibleToolbars);
           q.getModule('toolbar').container.style.display = "none";
         }
@@ -197,13 +234,16 @@ const TextEditor = () => {
         
       }
     });
-    
-    newQ.getModule('toolbar').container.style.display = "none";
+
+    if (quill.length > 0) newQ.getModule('toolbar').container.style.display = "none";
     setQuill([...quill, newQ]);
+    return newQ
   }
 
+
+
   return <div className='container' ref={wrapper}>
-    <button onClick={addPage}>add</button>
+    
   </div>;
 };
 
