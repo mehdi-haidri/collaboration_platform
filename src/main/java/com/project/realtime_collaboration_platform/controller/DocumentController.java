@@ -27,8 +27,6 @@ public class DocumentController {
     @PostMapping("/saveDocs")
     public ResponseEntity<?> saveDoc ( @RequestBody Document document){
 
-
-
         documentService.saveToDB(document);
         HashMap<String , Object> responseMap = new HashMap<>();
         responseMap.put("error" , false);
@@ -44,6 +42,24 @@ public class DocumentController {
             HashMap<String , Object> responseMap = new HashMap<>();
             responseMap.put("error" , false);
             responseMap.put("data" , document);
+            return new ResponseEntity<>(responseMap, HttpStatus.OK);
+        }catch (Exception ignored){
+            HashMap<String , Object> responseMap = new HashMap<>();
+            responseMap.put("error" , true);
+            responseMap.put("message" , "something went wrong");
+            return new ResponseEntity<>(responseMap, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getDoc(@PathVariable Integer id){
+
+
+        try{
+            String content = documentService.getLastSave(id);
+            HashMap<String , Object> responseMap = new HashMap<>();
+            responseMap.put("error" , false);
+            responseMap.put("data" , content);
             return new ResponseEntity<>(responseMap, HttpStatus.OK);
         }catch (Exception ignored){
             HashMap<String , Object> responseMap = new HashMap<>();

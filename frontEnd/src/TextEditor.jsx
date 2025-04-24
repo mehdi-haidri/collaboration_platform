@@ -3,6 +3,8 @@ import { useParams } from "react-router-dom";
 import 'highlight.js/styles/atom-one-dark.css';
 import hljs from "highlight.js/lib/core";
 import javascript from "highlight.js/lib/languages/javascript";
+import {sendMessage  , ConnectToDoc} from "./utils/Socket"
+
 
 // import { io } from "socket.io-client";
 hljs.registerLanguage("javascript", javascript);
@@ -32,9 +34,12 @@ const toolbarOptions = [
 
 
 const TextEditor = () => {
+  const [save, setSave] = useState(false);
+  const saveRef = useRef(save);
   const [quill, setQuill] = useState([]);
+  const quillRef = useRef(quill);
   const [socket, setSocket] = useState(null);
-  const editorRef = useRef();
+  const [documentLoaded, setDocumentLoaded] = useState(false);
   const wrapper = useRef();
   // getting the ID of the document from the route params
   const { id: documentId } = useParams();
@@ -42,77 +47,128 @@ const TextEditor = () => {
     this function will check if there are changes on the editor and if the changes are made by the current user,
     then send those changes to the server via the socket
     */
-  const sendUserChangesToServer = (delta, oldDelta, source , i) => {
-    /* 
-        API changes means that the server sent some changes to the client. This happens when someone else is typing
-        something on the same editor instance. Since this function is for sending current user's changes back to the
-        server, we will ignore this event.
+  const sendUserChangesToServer = (delta, oldDelta, source, i) => {
+    if (source === "user") {
+      setSave(true);
+      sendMessage(socket,{delta , addPage : false , page : i});
+      // console.log('delta', delta);
+      // console.log('page', i);
+     }
 
-
-    */
-      console.log(delta , i);
-    if (source === "api") return;
-
-    // if the user itself made changes on the editor, send the changes to the server via socket event
-     // ### socket.emit("send-change", delta);
+    
+    
   };
 
   // everytime we receive some changes by other users, update the contents of the editor
-  const updateEditor = delta => {
-    quill.updateContents(delta);
+  const updateEditor = (data ) => {
+    console.log(data);
+    if (data.type === 'change') { 
+      const value = JSON.parse(data.value);
+      if(value.addPage){
+        addPage("api");
+        return
+      } else {
+        console.log(quillRef.current.length)
+        quillRef.current[value.page].updateContents(value.delta ,"api");
+      }
+    } else if (data.type == "notification") { 
+      console.log(data.value);
+    }
   };
 
-  const loadDocumentFromUser = document => {
-    quill.setContents(document);
-    quill.enable();
+  const loadDocumentFromUser = async () => {
+    try { 
+
+      const response = await fetch("http://localhost:8080/api/v1/documents/" + documentId, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if(!response.ok){
+          throw new Error(response.statusText);
+      }
+    
+      const data = await response.json();
+      const pages = JSON.parse(data.data)
+      console.log(pages);
+      if(pages.length === 0){
+        addPage();
+      }
+      
+      pages.forEach((page, i) => {
+        const Q = addPage();
+        setTimeout(() => {
+          Q.updateContents(page, "api");
+        } , 100)
+      })
+
+     setDocumentLoaded(true);
+    }catch (error) {
+      console.log(error);
+    }
+
+    
   };
 
-  // this useEffect will run once on mount only
+useEffect(() => {
+      saveRef.current = save;
+}, [save]);
+
   useEffect(() => {
-
-  
-  
-    
-
-   
-    
-    // creates an editor containersdsa for placing the quil editor inside including the toolbar
-   addPage();
-
-    // connecting to socket from the server
-    // const sock = io("http://localhost:5000");
-    // const sock = io("https://google-docs-plus-api.herokuapp.com/");
-    // // setting the socket to the local state
-    // setSocket(sock);
-
-    // before unmount
-    return () => {
-      // remove the quill editor
-      wrapper.current.innerHTML = "";
-      // disconnect from the socket
-      //   sock.disconnect();
-    };
+  loadDocumentFromUser();
   }, []);
+
+  useEffect(() => {
+    let interval
+    if (documentLoaded) {
+     const temp =   ConnectToDoc('ws://localhost:8080/ws/documents?docId=', documentId, updateEditor, setSocket);
+      
+       temp.onmessage = (event) => {
+   
+        const data = JSON.parse(event.data);
+        updateEditor(data , quill);
+        // const editor = editorRef.current.getEditor();
+        // editor.updateContents(data.delta, 'api');
+    };
+      // interval = setInterval(() => {
+        
+      //   if (saveRef.current) {
+      //     saveDoc();
+      //     setSave(false);
+      //   }
+      // }, 5000);
+    }
+    return () => {
+      clearInterval(interval);
+      
+    };
+  }, [documentLoaded]);
+
+  // useEffect(() => {
+  //   if (message) updateEditor(message.value);
+  // }, [message]);
 
   useEffect(
     () => {
+      console.log(socket);
+      quillRef.current = quill;
       // if quill or the socket is not present on mount, just return
-      if (quill === null && socket === null) return;
+      if (quill.length == 0  || socket === null) return;
       
-      
+      console.log(quill.length)
       // if user changes something on the editor, send it to the server
       quill.forEach((q, i) => {
         q.on("text-change", (delta, oldDelta, source) => {
           if(source === 'api') return
           const range = q.getSelection();
-          console.log("inserted" , source);
           if (range) {
             const bounds = q.getBounds(range.index);
             const position = bounds.top + bounds.height;
-              console.log(position);
             if (position > PAGE_HEIGHT) {
               const length = q.getLength();
-              q.deleteText(length - 2, 1);
+              q.deleteText(length - 2, 2);
               let newQ;
               if (i == quill.length - 1) {
                  newQ = addPage()
@@ -130,35 +186,23 @@ const TextEditor = () => {
                   newQ.setSelection(0, 0);
                 }, 50);
               }
+              return
             }
             
           }
-
           sendUserChangesToServer(delta, oldDelta, source, i)
         })
         q.on('selection-change', (range) => {
-         
           SetSelection(range, q)
         });
-        const toolbar = q.getModule('toolbar');
-        if (toolbar.container.querySelector('.ql-addPage')) return;
-        const ql_formats = document.createElement('span');
-        ql_formats.className = 'ql-formats ';
-        const AddPageButton = document.createElement("button");
-        AddPageButton.innerHTML = "➕Page";
-        AddPageButton.className = "ql-addPage";
-        AddPageButton.addEventListener("click", addPage);
-        ql_formats.appendChild(AddPageButton);
-        toolbar.container.appendChild(ql_formats);
+        AddPageButton(q);
         
-
       });
+       
     
-      console.log('quill');
 
      
-      // if some other user has made changes to the editor, update the current editor with the changes
-    //   socket.on("receive-changes", updateEditor);
+
 
       // remove the event handler on unmount
       return () => {
@@ -171,7 +215,7 @@ const TextEditor = () => {
       };
     },
     // whenever the socket or the quill itself changes
-    [ quill]
+    [ quill , socket]
   );
 
 //   useEffect(() => {
@@ -200,28 +244,25 @@ const TextEditor = () => {
 //     };
   //   }, [socket, quill]);
   const SetSelection = (range ,q) => {
-    console.log('range', range);
     if (!range) {
       setTimeout(() => {
-        const visibleToolbars = Array.from(document.querySelectorAll(".ql-toolbar"))
+        const visibleToolbars = Array.from(wrapper.current.querySelectorAll(".ql-toolbar"))
         .filter(toolbar => {
           const style = window.getComputedStyle(toolbar);
           return style.display === "flex";
         });
-        console.log('removed');
         if (!(visibleToolbars.length == 1)) {
           console.log(visibleToolbars);
           q.getModule('toolbar').container.style.display = "none";
         }
       }, 0)
     } else {
-      console.log('aadded');
       q.getModule('toolbar').container.style.display = "flex";
     }
 
   }
 
-  const addPage = () => { 
+  const addPage = (type) => { 
     const newPage = document.createElement("div");
     newPage.className = "page"
     wrapper.current.appendChild(newPage);
@@ -235,12 +276,53 @@ const TextEditor = () => {
       }
     });
 
-    if (quill.length > 0) newQ.getModule('toolbar').container.style.display = "none";
+    if (quill.length > 0) {
+      newQ.getModule('toolbar').container.style.display = "none"
+      console.log(type);
+      if (type != "api") sendMessage(socket,{addPage : true });
+    }
+    
+    quillRef.current = [...quill, newQ];
     setQuill([...quill, newQ]);
     return newQ
   }
+  
+  const AddPageButton = (q) => { 
+    const toolbar = q.getModule('toolbar');
+    if (toolbar.container.querySelector('.ql-addPage')) return;
+    const ql_formats = document.createElement('span');
+    ql_formats.className = 'ql-formats ';
+    const AddPageButton = document.createElement("button");
+    AddPageButton.innerHTML = "➕Page";
+    AddPageButton.className = "ql-addPage";
+    AddPageButton.addEventListener("click", addPage);
+    ql_formats.appendChild(AddPageButton);
+    toolbar.container.appendChild(ql_formats);
+  }
 
 
+  const saveDoc = async () => { 
+      
+    const value = quill.forEach(q => q.getContents());
+
+    try { 
+      const respense = await fetch('http://localhost:8080/api/v1/documents/saveDocs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id :documentId, content: value }),
+      })
+
+      if(!respense.ok){
+        throw new Error(respense.statusText)
+      }
+      console.log(respense.json());
+    }catch (error) {
+      console.log(error);
+    }
+
+  }
 
   return <div className='container' ref={wrapper}>
     

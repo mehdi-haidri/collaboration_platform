@@ -1,6 +1,6 @@
 
 
-export const ConnectToDoc = async (url = 'ws://localhost:8080/ws/documents?docId=', docId , update , setSocket) => {
+export const ConnectToDoc =  (url = 'ws://localhost:8080/ws/documents?docId=', docId , update , setSocket) => {
     const temp = new WebSocket(url + docId);
     setSocket(temp);
     temp.onopen = () => {
@@ -8,14 +8,14 @@ export const ConnectToDoc = async (url = 'ws://localhost:8080/ws/documents?docId
     }
 
 
-    temp.onmessage = (event) => {
+    // temp.onmessage = (event) => {
    
-        const data = JSON.parse(event.data);
-        
-        update(data);
-        // const editor = editorRef.current.getEditor();
-        // editor.updateContents(data.delta, 'api');
-     };
+    //     const data = JSON.parse(event.data);
+    //     update(data);
+    //     // const editor = editorRef.current.getEditor();
+    //     // editor.updateContents(data.delta, 'api');
+    // };
+    return temp
 };
 
 

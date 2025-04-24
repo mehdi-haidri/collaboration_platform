@@ -59,12 +59,13 @@ public class DocumentService {
 
     public String getLastSave(Integer docId) {
         Optional<Document> document = documentRepository.findById(docId);
-        return document.map(Document::getContent).orElse(null);
+        return document.map(Document::getContent).orElse("[]");
     }
 
     public  Document createDocument(Document document) {
         return documentRepository.save(document);
     }
+
 
 
 }

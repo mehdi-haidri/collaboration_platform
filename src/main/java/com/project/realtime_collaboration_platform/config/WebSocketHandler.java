@@ -33,17 +33,18 @@ public class WebSocketHandler extends TextWebSocketHandler {
         Map<String, Object> message = new HashMap<>();
         ObjectMapper mapper = new ObjectMapper();
         String docId = getDocId(session);
-        logger.info("Connection established for docId: {}", docId);  // Log message
 
         docSessions.computeIfAbsent(docId, k -> new ArrayList<>()).add(session);
-        logger.info("sessions: {}", docSessions );
 
-        String lastSave = documentService.getLastSave(Integer.parseInt(docId));
+        logger.info("sessions: {}", docSessions );
+        NotifyOthers(session,docId);
+
+       /* String lastSave = documentService.getLastSave(Integer.parseInt(docId));
         if(lastSave != null && !lastSave.isEmpty()) {
             message.put("type", "lastSave");
             message.put("value", lastSave);
             session.sendMessage(new TextMessage(mapper.writeValueAsString(message)));
-        }
+        }*/
 
         List<String> chnages =  documentService.getAllOpsForDoc(docId);
                 for (var msg : chnages ){
@@ -51,7 +52,6 @@ public class WebSocketHandler extends TextWebSocketHandler {
                     message.put("value", msg);
                     session.sendMessage(new TextMessage(mapper.writeValueAsString(message)));
                 }
-      /*  NotifyOthers(session,docId);*/
 
 
     }
@@ -73,9 +73,13 @@ public class WebSocketHandler extends TextWebSocketHandler {
     }
 
     protected void NotifyOthers(WebSocketSession session , String docId) throws IOException {
+        Map<String, Object> message = new HashMap<>();
+        ObjectMapper mapper = new ObjectMapper();
+        message.put("type", "notification");
+        message.put("value", "new user added");
         for (WebSocketSession s : docSessions.get(docId)) {
             if (s.isOpen() && !s.getId().equals(session.getId())) {
-                s.sendMessage(new TextMessage("new user loged in "));
+                s.sendMessage(new TextMessage(mapper.writeValueAsString(message)));
             }
         }
     }
