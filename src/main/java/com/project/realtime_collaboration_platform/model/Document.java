@@ -1,8 +1,5 @@
 package com.project.realtime_collaboration_platform.model;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
@@ -19,6 +16,8 @@ public class Document {
     String name;
     String description;
     String ownerId;
+    @Lob
+    @Column(length = 10485760)
     String content;
     String type;
 }

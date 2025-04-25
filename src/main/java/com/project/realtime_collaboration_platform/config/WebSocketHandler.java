@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
@@ -89,5 +90,37 @@ public class WebSocketHandler extends TextWebSocketHandler {
         return uri != null && uri.getQuery() != null
                 ? uri.getQuery().split("=")[1] // crude parsing: ?docId=abc123
                 : "default";
+    }
+
+    @Override
+    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
+        String docId = getDocId( session);
+          docSessions.get(docId).remove(session);
+          logger.info("removed ; {}" , session);
+          notifyUserLeft(session, docId);
+            logger.info("Session {} disconnected. Remaining sessions: {}", session.getId(), docSessions.get(docId).size());
+            if(docSessions.get(docId).isEmpty()){
+                docSessions.remove(docId);
+                logger.info("No more sessions for docId: {}. Removed from session map.", docId);
+            }
+
+
+        // Optional: Notify others that a user has disconnected
+    }
+
+    private void notifyUserLeft(WebSocketSession session, String docId) throws IOException {
+        Map<String, Object> message = new HashMap<>();
+        ObjectMapper mapper = new ObjectMapper();
+        message.put("type", "notification");
+        message.put("value", "a user has left");
+
+        List<WebSocketSession> sessions = docSessions.get(docId);
+        if (sessions != null) {
+            for (WebSocketSession s : sessions) {
+                if (s.isOpen() && !s.getId().equals(session.getId())) {
+                    s.sendMessage(new TextMessage(mapper.writeValueAsString(message)));
+                }
+            }
+        }
     }
 }

@@ -8,13 +8,12 @@ export const ConnectToDoc =  (url = 'ws://localhost:8080/ws/documents?docId=', d
     }
 
 
-    // temp.onmessage = (event) => {
-   
-    //     const data = JSON.parse(event.data);
-    //     update(data);
-    //     // const editor = editorRef.current.getEditor();
-    //     // editor.updateContents(data.delta, 'api');
-    // };
+    temp.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        update(data);
+        // const editor = editorRef.current.getEditor();
+        // editor.updateContents(data.delta, 'api');
+    };
     return temp
 };
 

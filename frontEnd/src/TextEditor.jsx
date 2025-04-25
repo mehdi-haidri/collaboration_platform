@@ -95,15 +95,19 @@ const TextEditor = () => {
       console.log(pages);
       if(pages.length === 0){
         addPage();
+
+        setDocumentLoaded(true);
+        return
       }
-      
+      let docs = [];
       pages.forEach((page, i) => {
         const Q = addPage();
+        docs.push(Q);
         setTimeout(() => {
           Q.updateContents(page, "api");
         } , 100)
       })
-
+     setQuill(docs);
      setDocumentLoaded(true);
     }catch (error) {
       console.log(error);
@@ -123,22 +127,16 @@ useEffect(() => {
   useEffect(() => {
     let interval
     if (documentLoaded) {
-     const temp =   ConnectToDoc('ws://localhost:8080/ws/documents?docId=', documentId, updateEditor, setSocket);
+     ConnectToDoc('ws://localhost:8080/ws/documents?docId=', documentId, updateEditor, setSocket);
       
-       temp.onmessage = (event) => {
-   
-        const data = JSON.parse(event.data);
-        updateEditor(data , quill);
-        // const editor = editorRef.current.getEditor();
-        // editor.updateContents(data.delta, 'api');
-    };
-      // interval = setInterval(() => {
+       
+      interval = setInterval(() => {
         
-      //   if (saveRef.current) {
-      //     saveDoc();
-      //     setSave(false);
-      //   }
-      // }, 5000);
+        if (saveRef.current) {
+          saveDoc();
+          setSave(false);
+        }
+      }, 20000);
     }
     return () => {
       clearInterval(interval);
@@ -303,7 +301,9 @@ useEffect(() => {
 
   const saveDoc = async () => { 
       
-    const value = quill.forEach(q => q.getContents());
+    const value = quillRef.current.map(q => q.getContents());
+
+    console.log(value);
 
     try { 
       const respense = await fetch('http://localhost:8080/api/v1/documents/saveDocs', {
@@ -311,13 +311,13 @@ useEffect(() => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ id :documentId, content: value }),
+        body: JSON.stringify({ id :documentId, content: JSON.stringify(value) }),
       })
 
       if(!respense.ok){
         throw new Error(respense.statusText)
       }
-      console.log(respense.json());
+      console.log(await respense.json());
     }catch (error) {
       console.log(error);
     }
@@ -325,6 +325,7 @@ useEffect(() => {
   }
 
   return <div className='container' ref={wrapper}>
+    <button onClick={saveDoc}>Save</button>
     
   </div>;
 };
