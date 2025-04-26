@@ -4,13 +4,12 @@ import 'highlight.js/styles/atom-one-dark.css';
 import hljs from "highlight.js/lib/core";
 import javascript from "highlight.js/lib/languages/javascript";
 import {sendMessage  , ConnectToDoc} from "./utils/Socket"
-
-
-// import { io } from "socket.io-client";
+import { ImageResize } from 'quill-image-resize-module-ts';
 hljs.registerLanguage("javascript", javascript);
 const PAGE_HEIGHT = 1076;
 import Quill from "quill";
 import "quill/dist/quill.snow.css";
+Quill.register('modules/imageResize', ImageResize);
 
 
 const toolbarOptions = [
@@ -30,7 +29,7 @@ const toolbarOptions = [
 ];
 
 
-   
+
 
 
 const TextEditor = () => {
@@ -69,7 +68,9 @@ const TextEditor = () => {
         return
       } else {
         console.log(quillRef.current.length)
-        quillRef.current[value.page].updateContents(value.delta ,"api");
+        setTimeout(() => {
+          quillRef.current[value.page].updateContents(value.delta ,"api");
+        }, 100);
       }
     } else if (data.type == "notification") { 
       console.log(data.value);
@@ -101,7 +102,7 @@ const TextEditor = () => {
       }
       let docs = [];
       pages.forEach((page, i) => {
-        const Q = addPage();
+        const Q = addPage("api");
         docs.push(Q);
         setTimeout(() => {
           Q.updateContents(page, "api");
@@ -136,7 +137,7 @@ useEffect(() => {
           saveDoc();
           setSave(false);
         }
-      }, 20000);
+      }, 10000);
     }
     return () => {
       clearInterval(interval);
@@ -269,12 +270,18 @@ useEffect(() => {
       theme: "snow",
       modules: {
         syntax: { hljs },
-        toolbar: toolbarOptions
+        toolbar: toolbarOptions,
+        imageResize: {
+          // optional options
+          modules: ['Resize', 'DisplaySize'],
+          parchment: Quill.import('parchment')
+        }
+       
         
       }
     });
 
-    if (quill.length > 0) {
+    if (quillRef.current.length > 0) {
       newQ.getModule('toolbar').container.style.display = "none"
       console.log(type);
       if (type != "api") sendMessage(socket,{addPage : true });
@@ -300,10 +307,10 @@ useEffect(() => {
 
 
   const saveDoc = async () => { 
-      
-    const value = quillRef.current.map(q => q.getContents());
+    
 
-    console.log(value);
+    const value = quillRef.current.map(q => q.getContents());
+    console.log(value[0].ops[0]);
 
     try { 
       const respense = await fetch('http://localhost:8080/api/v1/documents/saveDocs', {
