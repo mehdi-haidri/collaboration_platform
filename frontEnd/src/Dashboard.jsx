@@ -39,14 +39,11 @@ function Dashboard() {
 
 
   return (
-      <div>
-          
+      <div>  
           <input value={type} onChange={(e) => setType(e.target.value)} type="text" />
           <button onClick={handleDocCreation}>ceate</button>
           <input value={id} onChange={(e) => setId(e.target.value)} type="text" />
           <button onClick={() => navigate(`/TextEditor/${id}`)}>connect</button>
-
-
     </div>
   )
 }

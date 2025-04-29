@@ -19,6 +19,7 @@
     "quill-image-resize-module-ts": "^3.0.3",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
+    "react-folder-tree": "^5.1.1",
     "react-quill": "^2.0.0",
     "react-router-dom": "^7.5.0"
   },

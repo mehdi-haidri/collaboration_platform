@@ -2,6 +2,7 @@ import { BrowserRouter } from 'react-router-dom';
 import Router from './config/route';
 import TextEditor from './TextEditor';
 import { useState , useEffect } from 'react';
+import Folder from './FolderTree';
 
 
 export default function App() {
@@ -17,9 +18,15 @@ export default function App() {
   }, [message]);
   
   return (
-    <BrowserRouter>
-      <Router></Router>
-     </BrowserRouter>
+    // <BrowserRouter>
+    //   <Router></Router>
+    //  </BrowserRouter>
+
+    <div style={{backgroundColor : "black"}}>
+      <Folder>
+
+      </Folder>
+    </div>
   
   );
 }
